@@ -6,7 +6,7 @@ ENV PUID=1000
 ENV PGID=1000
 ENV TZ=Europe/Berlin
 # Install mitmproxy
-RUN apt-get update && apt-get install -y mitmproxy
+RUN apk add mitmproxy
 COPY wireguard-rotator.py /wireguard-rotator.py
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
