@@ -12,6 +12,6 @@ COPY wireguard-rotator.py /wireguard-rotator.py
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 # ENTRYPOINT ["/bin/bash","-c","/usr/local/bin/entrypoint.sh"]
-CMD ["mitmproxy", "-s", "/wireguard-rotator.py"]
+CMD ["mitmdump", "-s", "/wireguard-rotator.py"]
 
 
