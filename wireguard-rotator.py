@@ -27,7 +27,7 @@ class Rotator:
 
     # Write the config to a file
     def renew_config(self):
-        with open("/etc/wireguard/wg0.conf", 'w') as f:
+        with open(f"{self.config_dir}wg0.conf", 'w') as f:
             f.write(self.pick_random_config())
 
     def connection(self):
@@ -52,11 +52,11 @@ class Rotator:
         result = run(['wg', 'show'], stdout=PIPE, stderr=PIPE, universal_newlines=True)
         if('wg0' in result.stdout and result.returncode == 0):
             logging.info("Wireguard is on, turning off")
-            result = run(['wg-quick', 'down', '/etc/wireguard/wg0.conf'], stdout=PIPE, stderr=PIPE, universal_newlines=True)
+            result = run(['wg-quick', 'down', f"{self.config_dir}wg0.conf"], stdout=PIPE, stderr=PIPE, universal_newlines=True)
             logging.info(result.returncode)
         self.renew_config()
         logging.info("Turning on Wireguard")
-        result = run(['wg-quick', 'up', '/etc/wireguard/wg0.conf'], stdout=PIPE, stderr=PIPE, universal_newlines=True)
+        result = run(['wg-quick', 'up', f"{self.config_dir}wg0.conf"], stdout=PIPE, stderr=PIPE, universal_newlines=True)
         logging.info(result.returncode)
         if not self.connection():
             logging.info("Connection Failed, Setup new config")
@@ -67,23 +67,31 @@ class Rotator:
         self.wireguard_configs = []
         self.history = []
         self.max_requests_per_ip = int(os.getenv('max', '3'))
+        self.config_dir = "conf/"
 
-    # Init
-    # Strip the IPv6 Part of the Wireguard config, Requird for Dockerimage 
-        for file in os.listdir("/conf/"):
+        # Init
+        # Strip the IPv6 Part of the Wireguard config, Requird for Dockerimage 
+        if not os.path.exists(self.config_dir):
+            os.makedirs(self.config_dir)
+
+        for file in os.listdir(self.config_dir):
             if file.endswith(".conf"):
                 new_config = []
-                #Read file contents
-                with open("/conf/" + file, 'r') as f:
-                        for line in f.read().split('\n'):
-                            if any(line.startswith(s) for s in ['Address','DNS','AllowedIPs']) and ',' in line:
-                                new_config.append(line.split(',')[0])
-                            else:
-                                new_config.append(line)
+                file_path = os.path.join(self.config_dir, file)
+
+                with open(file_path, 'r') as f:
+                    for line in f.read().splitlines():
+                        if any(line.startswith(key) for key in ['Address', 'DNS', 'AllowedIPs']) and ',' in line:
+                            # Keep only the first part before the comma (IPv4)
+                            new_config.append(line.split(',')[0])
+                        else:
+                            # Keep the line as is
+                            new_config.append(line)
+
+                # Combine the processed lines and store the configuration
                 self.wireguard_configs.append('\n'.join(new_config))
     
         self.wireguard() # Setup Initial Connection
-
 
     @concurrent
     def request(self, flow):
